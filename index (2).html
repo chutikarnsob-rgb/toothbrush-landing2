@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แปรงสีฟัน | เลือกแปรงที่ใช้ทุกเช้า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbfdfc;
+    --ink:#0f3b44;
+    --ink-soft:#4c6a71;
+    --mint:#dff2ea;
+    --line:#cfe3dc;
+    --action:#e8553f;
+    --action-dark:#c9412d;
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Sarabun","Noto Sans Thai",Tahoma,sans-serif;
+    font-size:18px;line-height:1.65;
+  }
+  h1,h2,h3{font-family:"Prompt","Sarabun",Tahoma,sans-serif;line-height:1.25;margin:0}
+  a{color:inherit}
+  :focus-visible{outline:3px solid var(--action);outline-offset:3px}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+
+  /* hero */
+  .hero{background:var(--mint);border-bottom:1px solid var(--line)}
+  .hero .wrap{padding-top:72px;padding-bottom:80px}
+  .hero h1{font-size:clamp(2.2rem,6vw,4rem);font-weight:700;max-width:14em;letter-spacing:-0.01em}
+  .hero p{font-size:1.15rem;color:var(--ink-soft);max-width:30em;margin:20px 0 32px}
+  .btn{
+    display:inline-block;background:var(--action);color:#fff;text-decoration:none;
+    font-family:"Prompt",sans-serif;font-weight:600;font-size:1rem;
+    padding:13px 26px;border-radius:999px;border:0;cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn:hover{background:var(--action-dark)}
+  .btn[aria-disabled="true"]{background:#9db1b5;cursor:not-allowed;pointer-events:none}
+
+  /* products */
+  .products{padding:72px 0 40px}
+  .products > .wrap > h2{font-size:clamp(1.6rem,4vw,2.2rem);margin-bottom:8px}
+  .products > .wrap > .sub{color:var(--ink-soft);margin:0 0 40px}
+
+  .item{
+    display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:40px;align-items:center;
+    padding:36px 0;border-top:1px solid var(--line);
+  }
+  .item:nth-child(even) .pic{order:2}
+  .pic{margin:0;border-radius:var(--radius);overflow:hidden;background:var(--mint);aspect-ratio:1/1}
+  .pic img{display:block;width:100%;height:100%;object-fit:cover}
+  .info h3{font-size:1.7rem;font-weight:600}
+  .sku{color:var(--ink-soft);font-size:.95rem;margin:4px 0 14px}
+  .desc{margin:0 0 20px;max-width:28em}
+  .row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .price{font-family:"Prompt",sans-serif;font-size:2rem;font-weight:700}
+  .stock{font-size:.95rem;color:var(--ink-soft)}
+  .stock.out{color:var(--action-dark);font-weight:600}
+
+  /* states */
+  .state{padding:40px 0;color:var(--ink-soft)}
+  .state strong{display:block;color:var(--ink);font-family:"Prompt",sans-serif;font-size:1.2rem;margin-bottom:6px}
+
+  footer{border-top:1px solid var(--line);margin-top:40px;padding:28px 0 40px;color:var(--ink-soft);font-size:.95rem}
+
+  @media (max-width:720px){
+    body{font-size:17px}
+    .hero .wrap{padding-top:48px;padding-bottom:56px}
+    .item{grid-template-columns:1fr;gap:20px}
+    .item:nth-child(even) .pic{order:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .btn{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>แปรงสีฟันที่ใช้ทุกเช้า ควรเลือกให้ดี</h1>
+    <p>ขนนุ่มอ่อนโยนต่อเหงือก หรือด้ามไม้ไผ่ที่เป็นมิตรกับโลก เลือกแบบที่เหมาะกับคุณได้เลย</p>
+    <a class="btn" href="#products">ดูสินค้า</a>
+  </div>
+</header>
+
+<main class="products" id="products">
+  <div class="wrap">
+    <h2>สินค้าของเรา</h2>
+    <p class="sub">ราคาและจำนวนคงเหลือเป็นข้อมูลล่าสุด</p>
+    <div id="list" aria-live="polite">
+      <div class="state">กำลังโหลดสินค้า...</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">ร้านแปรงสีฟัน · งานส่งวิชา</div>
+</footer>
+
+<script>
+/* ===== ตั้งค่า 2 จุดนี้ ===== */
+// 1) ลิงก์ CSV ของชีต products (File > Share > Publish to web > products + CSV)
+const SHEET_URL = "ใส่ลิงก์ CSV ตรงนี้";
+
+// 2) (ไม่บังคับ) ลิงก์ Google Form สำหรับสั่งซื้อ ถ้าไม่มีให้เว้นว่างไว้ "" ปุ่มสั่งซื้อจะไม่แสดง
+const ORDER_URL = "";
+/* ========================= */
+
+const list = document.getElementById("list");
+
+// อ่าน CSV แบบรองรับ "ข้อความที่มี, จุลภาค" และบรรทัดใหม่ในเครื่องหมายคำพูด
+function parseCSV(text){
+  const rows = [];
+  let row = [], cell = "", inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){
+      if (c === '"'){
+        if (text[i+1] === '"'){ cell += '"'; i++; }
+        else inQ = false;
+      } else cell += c;
+    } else if (c === '"'){ inQ = true; }
+    else if (c === ","){ row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r"){
+      if (c === "\r" && text[i+1] === "\n") i++;
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ""));
+}
+
+function showState(title, detail){
+  list.innerHTML = "";
+  const d = document.createElement("div");
+  d.className = "state";
+  const s = document.createElement("strong");
+  s.textContent = title;
+  d.append(s, detail);
+  list.append(d);
+}
+
+function money(n){
+  const v = Number(n);
+  return isNaN(v) ? n : "฿" + v.toLocaleString("th-TH");
+}
+
+// รูปอยู่ใน images/ ก่อน ถ้าไม่เจอจะลองที่รากของเว็บ
+function makeImg(file, alt){
+  const img = document.createElement("img");
+  img.alt = alt;
+  img.loading = "lazy";
+  let tried = 0;
+  const paths = ["images/" + file, file];
+  img.src = paths[0];
+  img.onerror = () => {
+    tried++;
+    if (tried < paths.length) img.src = paths[tried];
+  };
+  return img;
+}
+
+function render(products){
+  list.innerHTML = "";
+  products.forEach(p => {
+    const item = document.createElement("article");
+    item.className = "item";
+
+    const fig = document.createElement("figure");
+    fig.className = "pic";
+    fig.append(makeImg(p.image, p.name));
+
+    const info = document.createElement("div");
+    info.className = "info";
+
+    const h = document.createElement("h3");
+    h.textContent = p.name;
+
+    const sku = document.createElement("p");
+    sku.className = "sku";
+    sku.textContent = "รหัสสินค้า " + p.sku;
+
+    const desc = document.createElement("p");
+    desc.className = "desc";
+    desc.textContent = p.description || "";
+
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const price = document.createElement("span");
+    price.className = "price";
+    price.textContent = money(p.price);
+
+    const stockNum = Number(p.stock);
+    const stock = document.createElement("span");
+    stock.className = "stock";
+    if (!isNaN(stockNum) && stockNum <= 0){
+      stock.classList.add("out");
+      stock.textContent = "สินค้าหมด";
+    } else {
+      stock.textContent = "คงเหลือ " + p.stock + " ชิ้น";
+    }
+
+    row.append(price, stock);
+
+    if (ORDER_URL){
+      const a = document.createElement("a");
+      a.className = "btn";
+      a.textContent = "สั่งซื้อ";
+      if (!isNaN(stockNum) && stockNum <= 0){
+        a.setAttribute("aria-disabled", "true");
+      } else {
+        a.href = ORDER_URL;
+        a.target = "_blank";
+        a.rel = "noopener";
+      }
+      row.append(a);
+    }
+
+    info.append(h, sku, desc, row);
+    item.append(fig, info);
+    list.append(item);
+  });
+}
+
+async function load(){
+  if (!SHEET_URL || SHEET_URL.indexOf("http") !== 0){
+    showState("ยังไม่ได้ตั้งค่าลิงก์ชีต", "เปิดไฟล์ index.html แล้วใส่ลิงก์ CSV ที่ตัวแปร SHEET_URL");
+    return;
+  }
+  try{
+    const url = SHEET_URL + (SHEET_URL.includes("?") ? "&" : "?") + "_=" + Date.now();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) throw new Error("ชีตไม่มีข้อมูลสินค้า");
+    const head = rows.shift().map(h => h.trim().toLowerCase());
+    const products = rows.map(r => {
+      const o = {};
+      head.forEach((h, i) => o[h] = (r[i] || "").trim());
+      return o;
+    }).filter(p => p.sku && p.name);
+    if (!products.length) throw new Error("ไม่พบแถวสินค้าที่มี sku และ name");
+    render(products);
+  }catch(err){
+    showState("โหลดสินค้าไม่สำเร็จ",
+      "ตรวจว่าเผยแพร่ชีต products เป็น CSV แล้ว และลิงก์ใน SHEET_URL ถูกต้อง (" + err.message + ")");
+  }
+}
+load();
+</script>
+</body>
+</html>
